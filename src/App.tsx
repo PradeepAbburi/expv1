@@ -191,6 +191,46 @@ const categories: Category[] = [
   ['Home Services', Home, 'blue'], ['Beauty & Wellness', Sparkles, 'pink'], ['Photography', Camera, 'yellow'], ['Education', GraduationCap, 'green'], ['Fitness', Dumbbell, 'orange'], ['Repairs', Wrench, 'sky'], ['Cleaning', Brush, 'mint'], ['Automotive', Car, 'lavender'], ['Plumbing', Wrench, 'blue'], ['Electrical', Zap, 'yellow'], ['Painting', Brush, 'pink'], ['Catering', Utensils, 'orange'], ['Music & DJ', Music2, 'lavender'], ['Event Planning', CalendarDays, 'green'], ['Graphic Design', Clapperboard, 'sky'], ['Web Development', BriefcaseBusiness, 'blue'], ['Tutoring', GraduationCap, 'yellow'], ['Yoga', Dumbbell, 'mint'], ['Personal Trainer', Users, 'pink'], ['Dance Classes', Sparkles, 'orange'], ['Pet Care', PawPrint, 'lavender'], ['Child Care', Baby, 'green'], ['Elder Care', Stethoscope, 'blue'], ['Health & Wellness', Heart, 'pink'], ['Salon at Home', Scissors, 'yellow'], ['Makeup Artist', Sparkles, 'orange'], ['Tailoring', Scissors, 'mint'], ['Laundry', Brush, 'sky'], ['Pest Control', ShieldCheck, 'green'], ['AC Repair', AirVent, 'blue'], ['Car Wash', Car, 'yellow'], ['Bike Service', Bike, 'pink'], ['Packers & Movers', Plane, 'lavender'], ['Interior Design', Home, 'orange'], ['Legal Services', BriefcaseBusiness, 'sky'], ['Accounting', CircleDollarSign, 'green'], ['Real Estate', Home, 'blue'], ['Travel Planner', Plane, 'yellow'], ['Food & Baking', Utensils, 'pink'], ['Handmade & Crafts', Scissors, 'orange'], ['Photography Studio', Camera, 'mint'], ['Fashion Styling', ShoppingBag, 'lavender'], ['Mobile Repair', Phone, 'sky'], ['Home Décor', Home, 'green'], ['Marketing', Send, 'blue']
 ].map(([label, icon, tone]) => ({ label: label as string, icon: icon as Icon, tone: tone as string }));
 
+const categoryEmoji: Record<string, string> = {
+  'Home Services': '🏠', 'Beauty & Wellness': '💆', 'Photography': '📷', 'Education': '📚',
+  'Fitness': '🏋️', 'Repairs': '🔧', 'Cleaning': '🧹', 'Automotive': '🚗',
+  'Plumbing': '🔩', 'Electrical': '⚡', 'Painting': '🎨', 'Catering': '🍽️',
+  'Music & DJ': '🎵', 'Event Planning': '🎉', 'Graphic Design': '🖥️', 'Web Development': '💻',
+  'Tutoring': '📝', 'Yoga': '🧘', 'Personal Trainer': '💪', 'Dance Classes': '💃',
+  'Pet Care': '🐾', 'Child Care': '👶', 'Elder Care': '🤝', 'Health & Wellness': '❤️',
+  'Salon at Home': '✂️', 'Makeup Artist': '💄', 'Tailoring': '🪡', 'Laundry': '🧺',
+  'Pest Control': '🐛', 'AC Repair': '❄️', 'Car Wash': '🚿', 'Bike Service': '🏍️',
+  'Packers & Movers': '📦', 'Interior Design': '🛋️', 'Legal Services': '⚖️', 'Accounting': '💰',
+  'Real Estate': '🏢', 'Travel Planner': '✈️', 'Food & Baking': '🍰', 'Handmade & Crafts': '🧶',
+  'Photography Studio': '🎬', 'Fashion Styling': '👗', 'Mobile Repair': '📱', 'Home Décor': '🪴',
+  'Marketing': '📣',
+};
+
+// Sprite sheet: 1536×1024, 8 cols × 6 rows. Each cell = 192 × 170.67px.
+const SPRITE_COLS = 8;
+const SPRITE_ROWS = 6;
+const categoryIndex: Record<string, number> = {};
+categories.forEach((c, i) => { categoryIndex[c.label] = i; });
+
+// CSS percentage sprite — background-size: 800% 600% makes each cell
+// exactly fill the container, at any card width/height. No pixel guessing.
+function getCategoryBg(label: string): React.CSSProperties {
+  const idx = categoryIndex[label] ?? 0;
+  const col = idx % SPRITE_COLS;
+  const row = Math.floor(idx / SPRITE_COLS);
+  // Percentage formula: (col / (N-1)) * 100% aligns the correct cell to the container edge
+  const xPct = col === 0 ? 0 : (col / (SPRITE_COLS - 1)) * 100;
+  const yPct = row === 0 ? 0 : (row / (SPRITE_ROWS - 1)) * 100;
+  return {
+    backgroundImage:    'url(/category-grid.png)',
+    backgroundSize:     `${SPRITE_COLS * 100}% ${SPRITE_ROWS * 100}%`,
+    backgroundPosition: `${xPct}% ${yPct}%`,
+    backgroundRepeat:   'no-repeat',
+  };
+}
+
+
+
 const navItems: { label: Page; icon: Icon }[] = [
   { label: 'Overview', icon: LayoutDashboard }, { label: 'Services', icon: Grid2X2 }, { label: 'Bookings', icon: CalendarDays }, { label: 'Messages', icon: MessageCircle }, { label: 'My Cards', icon: BriefcaseBusiness },
 ];
@@ -300,6 +340,8 @@ function App() {
   if (!user) return <AuthFlow />;
 
   const isMobilePage = page === 'Professional' || page === 'BookingFlow' || page === 'AllCategories';
+  const hideTopbar = page === 'Messages' || page === 'Bookings' || page === 'My Cards';
+  const fullscreenPage = page === 'Messages';
 
   return <div className="app-shell">
     <aside className="sidebar">
@@ -308,13 +350,13 @@ function App() {
       <nav className="main-nav">{visibleNavItems.map(({ label, icon: Icon }) => <button className={`nav-item ${page === label || (label === 'Services' && page === 'Professional') ? 'active' : ''}`} onClick={() => setPage(label)} key={label}><Icon size={18} /><span>{label}</span>{label === 'Messages' && <b className="nav-count">3</b>}</button>)}</nav>
       <div className="sidebar-bottom"><div className="upgrade-card"><Sparkles size={20} /><strong>Go pro, get noticed</strong><p>Stand out and reach more customers.</p><button onClick={() => notify('Pro upgrade preview opened')}>Explore Pro <ArrowUpRight size={14} /></button></div><div className="account-menu-wrap"><button className="sidebar-user" onClick={() => setShowAccountMenu((v) => !v)}><span className="avatar">{userInitials}</span><span><strong>{displayName}</strong><small>{role === 'professional' ? 'Professional' : 'Customer'}</small></span><MoreHorizontal size={18} /></button>{showAccountMenu && <div className="account-menu"><button onClick={() => { setPage('My Cards'); setShowAccountMenu(false); }}><Users size={15} /> My profile</button><button onClick={() => notify('Settings saved automatically')}><Settings size={15} /> Settings</button><button onClick={switchRole}><BriefcaseBusiness size={15} /> Switch to {role === 'professional' ? 'customer' : 'professional'}</button><button onClick={() => void handleSignOut()}><ArrowLeft size={15} /> Sign out</button></div>}</div></div>
     </aside>
-    <main className="main-content">
-      <header className="topbar">
+    <main className={`main-content${hideTopbar ? ' no-topbar' : ''}`}>
+      {!hideTopbar && <header className="topbar">
         <div className="mobile-brand"><span className="brand-mark"><Zap size={17} fill="currentColor" /></span> Expertène</div>
         <div className="crumbs"><span>Workspace</span><ChevronRight size={14} /><strong>{page === 'Professional' ? selectedProfessional?.name : page}</strong></div>
         <div className="top-actions"><button className="icon-button"><Bell size={19} /><i /></button><button className="location-top" onClick={() => setShowLocation(true)}><MapPin size={15} /> {location}<ChevronDown size={13} /></button><span className="avatar avatar-top">{userInitials}</span></div>
-      </header>
-      <div className={`page-wrap ${isMobilePage ? 'no-bottom-bar' : ''}`}>
+      </header>}
+      <div className={`page-wrap${isMobilePage ? ' no-bottom-bar' : ''}${fullscreenPage ? ' page-fullscreen' : ''}${hideTopbar ? ' page-no-topbar' : ''}`}>
         {page === 'Overview' && <Overview openService={openService} onExplore={() => setPage('Services')} onNotify={notify} onSearch={(q) => { setQuery(q); setPage('Services'); }} />}
         {page === 'Services' && <Services query={query} setQuery={setQuery} categories={filteredCategories} selectedService={selectedService} selectService={openService} onProfile={openProfessional} onLocation={() => setShowLocation(true)} customServices={services} onAddService={() => setShowAddService(true)} canAddService={role === 'professional'} onAllCategories={() => setPage('AllCategories')} />}
         {page === 'AllCategories' && <AllCategoriesPage categories={filteredCategories} query={query} setQuery={setQuery} onSelect={openService} onBack={() => setPage('Services')} />}
@@ -387,8 +429,8 @@ function Stat({ label, value, change, color, icon: Icon }: { label: string; valu
 function ScheduleRow({ time, title, meta, color }: { time: string; title: string; meta: string; color: string }) { return <div className="schedule-row"><time>{time}</time><div className={`schedule-dot dot-${color}`} /><div><strong>{title}</strong><small>{meta}</small></div><ChevronRight size={16} /></div>; }
 
 function Services({ query, setQuery, categories: results, selectedService, selectService, onProfile, onLocation, customServices, onAddService, canAddService, onAllCategories }: { query: string; setQuery: (value: string) => void; categories: Category[]; selectedService: string; selectService: (service: string) => void; onProfile: (professional: Professional) => void; onLocation: () => void; customServices: ServiceRecord[]; onAddService: () => void; canAddService: boolean; onAllCategories: () => void }) {
-  // Show only 6 directory items; Show More navigates to AllCategories page
-  const DIRECTORY_LIMIT = 6;
+  // Show 10 directory items (one full row of 10); Show More navigates to AllCategories
+  const DIRECTORY_LIMIT = 10;
   const directoryItems = query ? results : results.slice(0, DIRECTORY_LIMIT);
   return (
     <>
@@ -401,10 +443,14 @@ function Services({ query, setQuery, categories: results, selectedService, selec
       <div className="sticky-search-wrapper">
         <div className="service-search"><Search size={20} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search services like photography, repairs, yoga..." /><kbd>⌘ K</kbd></div>
       </div>
-    <div className="popular-heading"><div><p className="eyebrow">POPULAR THIS WEEK</p><h3>Popular services near you</h3></div><span>Curated for {selectedService}</span></div>
-    <div className="popular-services">{categories.slice(0, 10).map(({ label, icon: Icon, tone }) => <button className={`popular-service tone-${tone}`} onClick={() => selectService(label)} key={label}><span><Icon size={23} /></span><strong>{label}</strong><small>Explore 120+ pros <ArrowUpRight size={12} /></small></button>)}</div>
+
     <div className="all-services-heading"><div><p className="eyebrow">THE FULL DIRECTORY</p><h3>All services</h3></div><span>{results.length === categories.length ? '45+ categories' : `${results.length} matches`}</span></div>
-    <div className="service-directory">{directoryItems.map(({ label, icon: Icon, tone }) => <button className={`directory-card tone-${tone}`} onClick={() => selectService(label)} key={label}><span className="directory-icon"><Icon size={21} /></span><span><strong>{label}</strong><small>Find trusted professionals</small></span><ChevronRight size={16} /></button>)}</div>
+    <div className="service-directory">{directoryItems.map(({ label }) => (
+      <button className="directory-card" onClick={() => selectService(label)} key={label}>
+        <span className="directory-illust" style={getCategoryBg(label)} />
+        <span className="directory-label"><strong>{label}</strong></span>
+      </button>
+    ))}</div>
     {!query && <button className="show-more-button" onClick={onAllCategories}><Grid2X2 size={16} /> Browse all 45+ categories</button>}
     <section className="service-results"><div className="popular-heading"><div><p className="eyebrow">FEATURED PROFESSIONALS</p><h3>{selectedService} specialists</h3></div><span>125 professionals found</span></div>{professionals.map((p) => <ProfessionalRow professional={p} onProfile={onProfile} key={p.name} />)}</section>
     {customServices.length > 0 && <section className="service-results"><div className="popular-heading"><div><p className="eyebrow">YOUR PUBLISHED WORK</p><h3>Services you added</h3></div><span>{customServices.length} saved</span></div><div className="custom-service-grid">{customServices.map((s) => <article className="custom-service-card panel" key={s.id}><img src={s.image_url} alt="" /><div><h3>{s.title}</h3><p>{s.description}</p><strong>₹{s.price.toLocaleString('en-IN')}</strong><small>Available {s.available_date}</small></div></article>)}</div></section>}
@@ -420,11 +466,10 @@ function AllCategoriesPage({ categories: all, query, setQuery, onSelect, onBack 
         <div className="service-search" style={{maxWidth:'380px',boxShadow:'none'}}><Search size={17} /><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search categories..." /></div>
       </PageTitle>
       <div className="all-cats-grid">
-        {all.map(({ label, icon: Icon, tone }) => (
-          <button key={label} className={`directory-card tone-${tone}`} onClick={() => { onSelect(label); onBack(); }}>
-            <span className="directory-icon"><Icon size={21} /></span>
-            <span><strong>{label}</strong><small>Find trusted professionals</small></span>
-            <ChevronRight size={16} />
+        {all.map(({ label }) => (
+          <button key={label} className="directory-card" onClick={() => { onSelect(label); onBack(); }}>
+            <span className="directory-illust" style={getCategoryBg(label)} />
+            <span className="directory-label"><strong>{label}</strong></span>
           </button>
         ))}
       </div>
