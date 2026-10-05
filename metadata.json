@@ -1,0 +1,8 @@
+{
+  "name": "Expertène",
+  "description": "Find and book trusted local professionals for home services, photography, repairs, fitness, tutoring, and more.",
+  "permissions": [],
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

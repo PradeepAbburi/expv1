@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ComponentType, type FormEvent, type ReactNode } from 'react';
 import {
-  AirVent, ArrowLeft, ArrowRight, ArrowUpRight, Baby, Bell, Bike, BriefcaseBusiness, Brush, CalendarDays, Camera, Car, Check, ChevronDown, ChevronLeft, ChevronRight, CircleDollarSign, Clapperboard, Clock, Dumbbell, ExternalLink, Eye, EyeOff, GraduationCap, Grid2X2, Heart, Home, LayoutDashboard, MapPin, MessageCircle, Monitor, MoreHorizontal, Music2, Navigation, PawPrint, Phone, Plane, Plus, Search, Scissors, Send, Settings, Share2, ShieldCheck, ShoppingBag, Sparkles, Star, Stethoscope, Trash2, Utensils, Users, Wrench, X, Zap, type LucideProps,
+  AirVent, ArrowLeft, ArrowUpRight, Baby, Bell, Bike, BriefcaseBusiness, Brush, CalendarDays, Camera, Car, Check, ChevronDown, ChevronLeft, ChevronRight, CircleDollarSign, Clapperboard, Clock, Dumbbell, ExternalLink, Eye, EyeOff, GraduationCap, Grid2X2, Heart, Home, LayoutDashboard, MapPin, MessageCircle, Monitor, MoreHorizontal, Music2, Navigation, PawPrint, Phone, Plane, Plus, Search, Scissors, Send, Settings, Share2, ShieldCheck, ShoppingBag, Sparkles, Star, Stethoscope, Utensils, Users, Wrench, X, Zap, type LucideProps,
 } from 'lucide-react';
 import {
   auth,
@@ -16,10 +16,18 @@ import {
   type User,
   type ServiceRecord,
   type BookingRecord,
-  type CustomField,
 } from './lib/firebase';
+import { COUNTRIES, type CountryOption } from './data/countries';
+export type { CountryOption };
+export { COUNTRIES };
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+
+interface NominatimSearchResult {
+  display_name: string;
+  lat: string;
+  lon: string;
+}
 
 // Force light theme always
 document.documentElement.setAttribute('data-theme', 'light');
@@ -44,134 +52,6 @@ type Professional = {
 };
 type Category = { label: string; icon: Icon; tone: string };
 
-export interface CountryOption {
-  code: string;
-  name: string;
-  dial: string;
-  center: [number, number];
-  zoom: number;
-  regions: { name: string; coords: [number, number] }[];
-}
-
-export const COUNTRIES: CountryOption[] = [
-  {
-    code: 'IN',
-    name: 'India',
-    dial: '+91',
-    center: [20.5937, 78.9629],
-    zoom: 5,
-    regions: [
-      { name: 'Visakhapatnam, Andhra Pradesh', coords: [17.6868, 83.2185] },
-      { name: 'Hyderabad, Telangana', coords: [17.3850, 78.4867] },
-      { name: 'Bengaluru, Karnataka', coords: [12.9716, 77.5946] },
-      { name: 'Chennai, Tamil Nadu', coords: [13.0827, 80.2707] },
-      { name: 'Mumbai, Maharashtra', coords: [19.0760, 72.8777] },
-      { name: 'Delhi NCR', coords: [28.6139, 77.2090] },
-      { name: 'Kolkata, West Bengal', coords: [22.5726, 88.3639] },
-      { name: 'Pune, Maharashtra', coords: [18.5204, 73.8567] },
-      { name: 'Ahmedabad, Gujarat', coords: [23.0225, 72.5714] },
-      { name: 'Jaipur, Rajasthan', coords: [26.9124, 75.7873] },
-      { name: 'Kochi, Kerala', coords: [9.9312, 76.2673] },
-      { name: 'Vijayawada, Andhra Pradesh', coords: [16.5062, 80.6480] },
-    ],
-  },
-  {
-    code: 'US',
-    name: 'United States',
-    dial: '+1',
-    center: [37.0902, -95.7129],
-    zoom: 4,
-    regions: [
-      { name: 'New York, NY', coords: [40.7128, -74.0060] },
-      { name: 'Los Angeles, CA', coords: [34.0522, -118.2437] },
-      { name: 'Chicago, IL', coords: [41.8781, -87.6298] },
-      { name: 'Houston, TX', coords: [29.7604, -95.3698] },
-      { name: 'San Francisco, CA', coords: [37.7749, -122.4194] },
-      { name: 'Seattle, WA', coords: [47.6062, -122.3321] },
-      { name: 'Miami, FL', coords: [25.7617, -80.1918] },
-    ],
-  },
-  {
-    code: 'GB',
-    name: 'United Kingdom',
-    dial: '+44',
-    center: [55.3781, -3.4360],
-    zoom: 6,
-    regions: [
-      { name: 'London, England', coords: [51.5074, -0.1278] },
-      { name: 'Manchester, England', coords: [53.4808, -2.2426] },
-      { name: 'Birmingham, England', coords: [52.4862, -1.8904] },
-      { name: 'Edinburgh, Scotland', coords: [55.9533, -3.1883] },
-      { name: 'Glasgow, Scotland', coords: [55.8642, -4.2518] },
-    ],
-  },
-  {
-    code: 'AE',
-    name: 'United Arab Emirates',
-    dial: '+971',
-    center: [23.4241, 53.8478],
-    zoom: 7,
-    regions: [
-      { name: 'Dubai', coords: [25.2048, 55.2708] },
-      { name: 'Abu Dhabi', coords: [24.4539, 54.3773] },
-      { name: 'Sharjah', coords: [25.3463, 55.4209] },
-      { name: 'Ajman', coords: [25.4052, 55.5136] },
-    ],
-  },
-  {
-    code: 'CA',
-    name: 'Canada',
-    dial: '+1',
-    center: [56.1304, -106.3468],
-    zoom: 4,
-    regions: [
-      { name: 'Toronto, ON', coords: [43.6532, -79.3832] },
-      { name: 'Vancouver, BC', coords: [49.2827, -123.1207] },
-      { name: 'Montreal, QC', coords: [45.5017, -73.5673] },
-      { name: 'Calgary, AB', coords: [51.0447, -114.0719] },
-    ],
-  },
-  {
-    code: 'AU',
-    name: 'Australia',
-    dial: '+61',
-    center: [-25.2744, 133.7751],
-    zoom: 4,
-    regions: [
-      { name: 'Sydney, NSW', coords: [-33.8688, 151.2093] },
-      { name: 'Melbourne, VIC', coords: [-37.8136, 144.9631] },
-      { name: 'Brisbane, QLD', coords: [-27.4698, 153.0251] },
-      { name: 'Perth, WA', coords: [-31.9505, 115.8605] },
-    ],
-  },
-  {
-    code: 'SG',
-    name: 'Singapore',
-    dial: '+65',
-    center: [1.3521, 103.8198],
-    zoom: 11,
-    regions: [
-      { name: 'Central Area, Singapore', coords: [1.2897, 103.8501] },
-      { name: 'Jurong, Singapore', coords: [1.3329, 103.7436] },
-      { name: 'Tampines, Singapore', coords: [1.3533, 103.9452] },
-      { name: 'Woodlands, Singapore', coords: [1.4382, 103.7891] },
-    ],
-  },
-  {
-    code: 'DE',
-    name: 'Germany',
-    dial: '+49',
-    center: [51.1657, 10.4515],
-    zoom: 6,
-    regions: [
-      { name: 'Berlin', coords: [52.5200, 13.4050] },
-      { name: 'Munich', coords: [48.1351, 11.5820] },
-      { name: 'Frankfurt', coords: [50.1109, 8.6821] },
-      { name: 'Hamburg', coords: [53.5511, 9.9937] },
-    ],
-  },
-];
-
 const photos = {
   wedding: 'https://images.pexels.com/photos/33072063/pexels-photo-33072063.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
   camera: 'https://images.pexels.com/photos/33072059/pexels-photo-33072059.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
@@ -190,21 +70,6 @@ const professionals: Professional[] = [
 const categories: Category[] = [
   ['Home Services', Home, 'blue'], ['Beauty & Wellness', Sparkles, 'pink'], ['Photography', Camera, 'yellow'], ['Education', GraduationCap, 'green'], ['Fitness', Dumbbell, 'orange'], ['Repairs', Wrench, 'sky'], ['Cleaning', Brush, 'mint'], ['Automotive', Car, 'lavender'], ['Plumbing', Wrench, 'blue'], ['Electrical', Zap, 'yellow'], ['Painting', Brush, 'pink'], ['Catering', Utensils, 'orange'], ['Music & DJ', Music2, 'lavender'], ['Event Planning', CalendarDays, 'green'], ['Graphic Design', Clapperboard, 'sky'], ['Web Development', BriefcaseBusiness, 'blue'], ['Tutoring', GraduationCap, 'yellow'], ['Yoga', Dumbbell, 'mint'], ['Personal Trainer', Users, 'pink'], ['Dance Classes', Sparkles, 'orange'], ['Pet Care', PawPrint, 'lavender'], ['Child Care', Baby, 'green'], ['Elder Care', Stethoscope, 'blue'], ['Health & Wellness', Heart, 'pink'], ['Salon at Home', Scissors, 'yellow'], ['Makeup Artist', Sparkles, 'orange'], ['Tailoring', Scissors, 'mint'], ['Laundry', Brush, 'sky'], ['Pest Control', ShieldCheck, 'green'], ['AC Repair', AirVent, 'blue'], ['Car Wash', Car, 'yellow'], ['Bike Service', Bike, 'pink'], ['Packers & Movers', Plane, 'lavender'], ['Interior Design', Home, 'orange'], ['Legal Services', BriefcaseBusiness, 'sky'], ['Accounting', CircleDollarSign, 'green'], ['Real Estate', Home, 'blue'], ['Travel Planner', Plane, 'yellow'], ['Food & Baking', Utensils, 'pink'], ['Handmade & Crafts', Scissors, 'orange'], ['Photography Studio', Camera, 'mint'], ['Fashion Styling', ShoppingBag, 'lavender'], ['Mobile Repair', Phone, 'sky'], ['Home Décor', Home, 'green'], ['Marketing', Send, 'blue']
 ].map(([label, icon, tone]) => ({ label: label as string, icon: icon as Icon, tone: tone as string }));
-
-const categoryEmoji: Record<string, string> = {
-  'Home Services': '🏠', 'Beauty & Wellness': '💆', 'Photography': '📷', 'Education': '📚',
-  'Fitness': '🏋️', 'Repairs': '🔧', 'Cleaning': '🧹', 'Automotive': '🚗',
-  'Plumbing': '🔩', 'Electrical': '⚡', 'Painting': '🎨', 'Catering': '🍽️',
-  'Music & DJ': '🎵', 'Event Planning': '🎉', 'Graphic Design': '🖥️', 'Web Development': '💻',
-  'Tutoring': '📝', 'Yoga': '🧘', 'Personal Trainer': '💪', 'Dance Classes': '💃',
-  'Pet Care': '🐾', 'Child Care': '👶', 'Elder Care': '🤝', 'Health & Wellness': '❤️',
-  'Salon at Home': '✂️', 'Makeup Artist': '💄', 'Tailoring': '🪡', 'Laundry': '🧺',
-  'Pest Control': '🐛', 'AC Repair': '❄️', 'Car Wash': '🚿', 'Bike Service': '🏍️',
-  'Packers & Movers': '📦', 'Interior Design': '🛋️', 'Legal Services': '⚖️', 'Accounting': '💰',
-  'Real Estate': '🏢', 'Travel Planner': '✈️', 'Food & Baking': '🍰', 'Handmade & Crafts': '🧶',
-  'Photography Studio': '🎬', 'Fashion Styling': '👗', 'Mobile Repair': '📱', 'Home Décor': '🪴',
-  'Marketing': '📣',
-};
 
 // Sprite sheet: 1536×1024, 8 cols × 6 rows. Each cell = 192 × 170.67px.
 const SPRITE_COLS = 8;
@@ -332,12 +197,22 @@ function App() {
     notify(next === 'professional' ? 'Professional workspace opened' : 'Customer workspace opened');
   };
 
+  const handleGuestLogin = () => {
+    setUser({
+      uid: 'guest-explorer',
+      displayName: 'Guest Explorer',
+      email: 'guest@expertene.local',
+    } as User);
+    setPage('Services');
+    notify('Welcome to Expertène! Exploring demo workspace.');
+  };
+
   const visibleNavItems = role === 'professional' ? navItems : navItems.filter(({ label }) => label !== 'Overview');
   const userInitials = (user?.displayName ?? user?.email ?? 'RP').slice(0, 2).toUpperCase();
   const displayName = user?.displayName ?? user?.email?.split('@')[0] ?? 'Raj Photography';
 
   if (authLoading) return <div className="auth-loading"><span className="brand-mark"><Zap size={18} fill="currentColor" /></span><strong>Loading Expertène</strong></div>;
-  if (!user) return <AuthFlow />;
+  if (!user) return <AuthFlow onGuest={handleGuestLogin} />;
 
   const isMobilePage = page === 'Professional' || page === 'BookingFlow' || page === 'AllCategories';
   const hideTopbar = page === 'Messages' || page === 'Bookings' || page === 'My Cards';
@@ -542,18 +417,15 @@ function ProjectModal({ project, onClose }: { project: ProjectItem; onClose: () 
 function ImageViewerModal({ images, initialIndex, onClose }: { images: string[]; initialIndex: number; onClose: () => void }) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
 
-  const prev = () => setCurrentIndex(i => (i > 0 ? i - 1 : images.length - 1));
-  const next = () => setCurrentIndex(i => (i < images.length - 1 ? i + 1 : 0));
-
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
-      if (e.key === 'ArrowLeft') prev();
-      if (e.key === 'ArrowRight') next();
+      if (e.key === 'ArrowLeft') setCurrentIndex(i => (i > 0 ? i - 1 : images.length - 1));
+      if (e.key === 'ArrowRight') setCurrentIndex(i => (i < images.length - 1 ? i + 1 : 0));
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [images.length]);
+  }, [images.length, onClose]);
 
   return (
     <div className="image-viewer-backdrop" onClick={onClose}>
@@ -566,13 +438,13 @@ function ImageViewerModal({ images, initialIndex, onClose }: { images: string[];
         </div>
 
         <div className="image-viewer-stage">
-          <button className="image-viewer-nav prev" onClick={prev} aria-label="Previous photo">
+          <button className="image-viewer-nav prev" onClick={() => setCurrentIndex(i => (i > 0 ? i - 1 : images.length - 1))} aria-label="Previous photo">
             <ChevronLeft size={24} />
           </button>
           <div className="image-viewer-img-wrap">
             <img src={images[currentIndex]} alt={`Work sample ${currentIndex + 1}`} />
           </div>
-          <button className="image-viewer-nav next" onClick={next} aria-label="Next photo">
+          <button className="image-viewer-nav next" onClick={() => setCurrentIndex(i => (i < images.length - 1 ? i + 1 : 0))} aria-label="Next photo">
             <ChevronRight size={24} />
           </button>
         </div>
@@ -760,7 +632,7 @@ function ProfessionalPage({ professional, onBack, onBook, onMessage }: { profess
             </div>
             <div className="profile-gallery">
               {galleryImages.map((src, i) => (
-                <div key={i} className="gallery-thumb"><img src={src} alt="Work sample" /></div>
+                <div key={i} className="gallery-thumb" style={{ cursor: 'pointer' }} onClick={() => setViewerIndex(i)}><img src={src} alt="Work sample" /></div>
               ))}
             </div>
           </section>
@@ -886,10 +758,12 @@ function ProfessionalPage({ professional, onBack, onBook, onMessage }: { profess
       {activeProject && (
         <ProjectModal project={activeProject} onClose={() => setActiveProject(null)} />
       )}
+      {viewerIndex !== null && (
+        <ImageViewerModal images={galleryImages} initialIndex={viewerIndex} onClose={() => setViewerIndex(null)} />
+      )}
     </div>
   );
 }
-function ClockIcon() { return <span className="clock-icon">◷</span>; }
 
 function GoogleIcon() { return <svg width="20" height="20" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>; }
 
@@ -1006,6 +880,7 @@ function LeafletLocationPicker({ location, onClose, onSelect }: { location: stri
     markerRef.current = marker;
     setTimeout(() => map.invalidateSize(), 100);
     return () => { map.remove(); mapRef.current = null; markerRef.current = null; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleCountrySwitch = (code: string) => {
@@ -1042,11 +917,11 @@ function LeafletLocationPicker({ location, onClose, onSelect }: { location: stri
       try {
         const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&countrycodes=${countryObj.code.toLowerCase()}&q=${encodeURIComponent(val)}&limit=5`);
         const data = await res.json();
-        const apiMatches = data.map((item: any) => ({
+        const apiMatches = (data as NominatimSearchResult[]).map((item) => ({
           name: item.display_name.split(',').slice(0, 3).join(','),
           coords: [parseFloat(item.lat), parseFloat(item.lon)] as [number, number],
         }));
-        setSearchResults([...local, ...apiMatches.filter((a: any) => !local.some((l) => l.name === a.name))]);
+        setSearchResults([...local, ...apiMatches.filter((a) => !local.some((l) => l.name === a.name))]);
       } catch { /* keep local matches */ }
     }
   };
@@ -1161,10 +1036,10 @@ function LeafletLocationPicker({ location, onClose, onSelect }: { location: stri
 // ─── Auth Flow: Landing → Sign In / Sign Up ──────────────────────────────────
 type AuthStep = 'landing' | 'signin' | 'signup';
 
-function AuthFlow() {
+function AuthFlow({ onGuest }: { onGuest: () => void }) {
   const [step, setStep] = useState<AuthStep>('landing');
-  if (step === 'landing') return <LandingPage onSignIn={() => setStep('signin')} onSignUp={() => setStep('signup')} />;
-  return <AuthScreen step={step} setStep={setStep} />;
+  if (step === 'landing') return <LandingPage onSignIn={() => setStep('signin')} onSignUp={() => setStep('signup')} onGuest={onGuest} />;
+  return <AuthScreen step={step} setStep={setStep} onGuest={onGuest} />;
 }
 
 // Popular categories shown on landing
@@ -1188,7 +1063,7 @@ const landingProfessionals = [
   { name: 'LensPro', role: 'Portrait Specialist', rating: '4.9', reviews: 52, distance: '9.4 km', tags: ['Portrait', 'Commercial'], verified: false, image: 'https://images.pexels.com/photos/33072059/pexels-photo-33072059.jpeg?auto=compress&cs=tinysrgb&h=400&w=600' },
 ];
 
-function LandingPage({ onSignIn, onSignUp }: { onSignIn: () => void; onSignUp: () => void }) {
+function LandingPage({ onSignIn, onSignUp, onGuest }: { onSignIn: () => void; onSignUp: () => void; onGuest: () => void }) {
   const [searchQuery, setSearchQuery] = useState('');
   return (
     <div className="lp-root">
@@ -1197,13 +1072,13 @@ function LandingPage({ onSignIn, onSignUp }: { onSignIn: () => void; onSignUp: (
         <div className="lp-nav-inner">
           <div className="lp-brand"><span className="brand-mark"><Zap size={16} fill="currentColor" /></span> Expertène</div>
           <nav className="lp-nav-links">
-            <button>Find Services</button>
-            <button>For Professionals</button>
-            <button>How it works</button>
+            <button onClick={onGuest}>Find Services</button>
+            <button onClick={onGuest}>For Professionals</button>
+            <button onClick={onGuest}>How it works</button>
           </nav>
           <div className="lp-nav-actions">
             <button className="lp-nav-loc"><MapPin size={14} /> Visakhapatnam <ChevronDown size={12} /></button>
-            <button className="lp-nav-bell"><Bell size={17} /></button>
+            <button className="lp-signin-btn" onClick={onGuest} style={{ background: '#edf4ff', color: 'var(--blue)' }}>Explore Demo</button>
             <button className="lp-signin-btn" onClick={onSignIn}>Sign In</button>
             <button className="lp-signup-btn" onClick={onSignUp}>Get Started <ArrowUpRight size={13} /></button>
           </div>
@@ -1343,7 +1218,7 @@ function LandingPage({ onSignIn, onSignUp }: { onSignIn: () => void; onSignUp: (
   );
 }
 
-function AuthScreen({ step, setStep }: { step: AuthStep; setStep: (s: AuthStep) => void }) {
+function AuthScreen({ step, setStep, onGuest }: { step: AuthStep; setStep: (s: AuthStep) => void; onGuest: () => void }) {
   const mode = step === 'signup' ? 'signup' : 'signin';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -1418,6 +1293,7 @@ function AuthScreen({ step, setStep }: { step: AuthStep; setStep: (s: AuthStep) 
       signupMapRef.current = null;
       signupMarkerRef.current = null;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showMapPicker]);
 
   const handleCountryChange = (nextCountry: string) => {
@@ -1454,11 +1330,11 @@ function AuthScreen({ step, setStep }: { step: AuthStep; setStep: (s: AuthStep) 
       try {
         const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&countrycodes=${countryObj.code.toLowerCase()}&q=${encodeURIComponent(val)}&limit=5`);
         const data = await res.json();
-        const api = data.map((item: any) => ({
+        const api = (data as NominatimSearchResult[]).map((item) => ({
           name: item.display_name.split(',').slice(0, 3).join(','),
           coords: [parseFloat(item.lat), parseFloat(item.lon)] as [number, number],
         }));
-        setMapResults([...local, ...api.filter((a: any) => !local.some((l) => l.name === a.name))]);
+        setMapResults([...local, ...api.filter((a) => !local.some((l) => l.name === a.name))]);
       } catch { /* silently fallback */ }
     }
   };
@@ -1563,7 +1439,15 @@ function AuthScreen({ step, setStep }: { step: AuthStep; setStep: (s: AuthStep) 
         <h2>{mode === 'signin' ? 'Welcome back!' : 'Join Expertène today'}</h2>
         <p className="auth-subtitle">{mode === 'signin' ? 'Sign in to continue to Expertène.' : 'Save services, manage bookings, and publish your own work.'}</p>
         <button className="google-button" onClick={() => void handleGoogle()} disabled={loading}><GoogleIcon /> {loading ? 'Connecting...' : 'Continue with Google'}</button>
-        <div className="auth-divider"><span>or continue with</span></div>
+        <button
+          type="button"
+          className="google-button"
+          style={{ marginTop: '10px', background: '#edf4ff', borderColor: '#b8d0f8', color: 'var(--blue)' }}
+          onClick={onGuest}
+        >
+          <Sparkles size={16} /> Explore Demo Workspace
+        </button>
+        <div className="auth-divider"><span>or continue with email</span></div>
         <form onSubmit={submit}>
           {mode === 'signup' && <label>Your name<input value={name} onChange={(e) => setName(e.target.value)} required placeholder="Raj Sharma" /></label>}
           <label>Email address<input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="you@example.com" /></label>

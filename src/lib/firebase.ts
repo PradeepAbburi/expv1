@@ -22,13 +22,13 @@ import {
 } from 'firebase/firestore';
 
 const firebaseConfig = {
-  apiKey: 'AIzaSyC4jFJ3jCXd7Q5nydQaBSQWaVKvFhTkmJs',
-  authDomain: 'expertene-59771.firebaseapp.com',
-  projectId: 'expertene-59771',
-  storageBucket: 'expertene-59771.firebasestorage.app',
-  messagingSenderId: '284086686035',
-  appId: '1:284086686035:web:f7f79f6730d430db7091a6',
-  measurementId: 'G-0GQ6P1ML29',
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'AIzaSyC4jFJ3jCXd7Q5nydQaBSQWaVKvFhTkmJs',
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'expertene-59771.firebaseapp.com',
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || 'expertene-59771',
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || 'expertene-59771.firebasestorage.app',
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '284086686035',
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || '1:284086686035:web:f7f79f6730d430db7091a6',
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || 'G-0GQ6P1ML29',
 };
 
 const app = initializeApp(firebaseConfig);
@@ -87,24 +87,56 @@ export type BookingRecord = {
   status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
 };
 
+// Fallback in-memory records
+const inMemoryServices: ServiceRecord[] = [];
+const inMemoryBookings: BookingRecord[] = [];
+
 export const fetchServices = async (): Promise<ServiceRecord[]> => {
-  const q = query(collection(db, 'services'), orderBy('created_at', 'desc'));
-  const snap = await getDocs(q);
-  return snap.docs.map((doc) => ({ id: doc.id, ...doc.data() } as ServiceRecord));
+  try {
+    const q = query(collection(db, 'services'), orderBy('created_at', 'desc'));
+    const snap = await getDocs(q);
+    const list = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() } as ServiceRecord));
+    return list.length ? list : inMemoryServices;
+  } catch (err) {
+    console.warn('[Firebase] fetchServices offline fallback:', err);
+    return inMemoryServices;
+  }
 };
 
 export const addService = async (data: Omit<ServiceRecord, 'id'>): Promise<ServiceRecord> => {
-  const ref = await addDoc(collection(db, 'services'), { ...data, created_at: serverTimestamp() });
-  return { id: ref.id, ...data };
+  const tempId = `svc_${Date.now()}`;
+  const localItem: ServiceRecord = { id: tempId, ...data };
+  try {
+    const ref = await addDoc(collection(db, 'services'), { ...data, created_at: serverTimestamp() });
+    return { id: ref.id, ...data };
+  } catch (err) {
+    console.warn('[Firebase] addService offline fallback:', err);
+    inMemoryServices.unshift(localItem);
+    return localItem;
+  }
 };
 
 export const fetchBookings = async (): Promise<BookingRecord[]> => {
-  const q = query(collection(db, 'bookings'), orderBy('service_date', 'asc'));
-  const snap = await getDocs(q);
-  return snap.docs.map((doc) => ({ id: doc.id, ...doc.data() } as BookingRecord));
+  try {
+    const q = query(collection(db, 'bookings'), orderBy('service_date', 'asc'));
+    const snap = await getDocs(q);
+    const list = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() } as BookingRecord));
+    return list.length ? list : inMemoryBookings;
+  } catch (err) {
+    console.warn('[Firebase] fetchBookings offline fallback:', err);
+    return inMemoryBookings;
+  }
 };
 
 export const addBooking = async (data: Omit<BookingRecord, 'id'>): Promise<BookingRecord> => {
-  const ref = await addDoc(collection(db, 'bookings'), { ...data, created_at: serverTimestamp() });
-  return { id: ref.id, ...data };
+  const tempId = `bkn_${Date.now()}`;
+  const localItem: BookingRecord = { id: tempId, ...data };
+  try {
+    const ref = await addDoc(collection(db, 'bookings'), { ...data, created_at: serverTimestamp() });
+    return { id: ref.id, ...data };
+  } catch (err) {
+    console.warn('[Firebase] addBooking offline fallback:', err);
+    inMemoryBookings.push(localItem);
+    return localItem;
+  }
 };
